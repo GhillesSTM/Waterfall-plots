@@ -1,0 +1,99 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ---------------------------
+# 1. Load and Average the Data
+# ---------------------------
+# Adjust the filename/path as needed
+data = np.loadtxt('/content/sample_data/dIdV-line-ZrTe3 - Hf Doped9K_1815.txt')
+
+# Assume the file is arranged in alternating columns:
+# - Bias values in columns 0, 2, 4, ...
+# - dI/dV values in columns 1, 3, 5, ...
+bias = data[:, ::2]
+current = data[:, 1::2]
+
+# Define a function to average columns in blocks
+def average_columns(arr, block_size):
+    n_rows, n_cols = arr.shape
+    averaged_blocks = []
+    for i in range(0, n_cols, block_size):
+        block = arr[:, i:i + block_size]
+        block_avg = np.mean(block, axis=1, keepdims=True)
+        averaged_blocks.append(block_avg)
+    return np.hstack(averaged_blocks)
+
+# Set block size for averaging
+n_avg = 10
+
+# Compute the unique (averaged) curves
+bias_avg = average_columns(bias, n_avg)
+current_avg = average_columns(current, n_avg)
+
+# Normalize the spectra for better visualization
+current_avg = current_avg - np.min(current_avg)
+
+# ---------------------------
+# 2. Select the Range of Spectra to Plot and Customize
+# ---------------------------
+# Define the range of spectra to plot
+plot_start = 9 # Start index of spectra to plot
+plot_end = 25   # End index of spectra to plot
+
+# Define the specific range of spectra to color and customize
+color_start = 15  # Start index of spectra to color
+color_end = 19    # End index of spectra to color
+
+# Customizations for the highlighted range
+highlight_color = 'green'    # Color for the highlighted spectra
+highlight_style = '-'     # Line style for the highlighted spectra
+highlight_width = 2        # Line width for the highlighted spectra
+
+# Default customizations for other spectra
+default_color = 'blue'    # Default color for other spectra
+default_style = (0, (5, 5))        # Default line style
+default_width = 0.5         # Default line width
+
+
+# Slice the data to include only the selected range for plotting
+bias_avg = bias_avg[:, plot_start:plot_end]
+current_avg = current_avg[:, plot_start:plot_end]
+
+# ---------------------------
+# 3. Create the Waterfall Plot
+# ---------------------------
+# Number of selected curves to plot
+num_curves = bias_avg.shape[1]
+
+# Define a vertical offset between spectra
+offset_val = np.max(current_avg) * 0.1  # Adjust spacing as needed
+
+plt.figure(figsize=(4, 6))
+
+for i in range(num_curves):
+    # x values: bias, converted to mV
+    x_vals = bias_avg[:, i]
+    # y values: scaled and vertically offset dI/dV
+    y_vals = current_avg[:, i] + i * offset_val
+
+    # Choose the customization based on the specific spectrum range to highlight
+    if color_start <= (i + plot_start) < color_end:
+        color = highlight_color
+        linestyle = highlight_style
+        linewidth = highlight_width
+    else:
+        color = default_color
+        linestyle = default_style
+        linewidth = default_width
+
+    # Plot the spectrum with the chosen customization
+    plt.plot(x_vals, y_vals*1000000000000/2, linestyle=linestyle, linewidth=linewidth, color=color)
+# Customize tick label sizes
+plt.tick_params(axis='both', which='major', labelsize=14)  # Major ticks
+#plt.tick_params(axis='both', which='minor', labelsize=15)  # Minor ticks
+# Add labels and title
+plt.xlabel(' Bias (V)', fontsize=20)
+plt.ylabel('dIdV (A.U)', fontsize=20)
+#plt.title(f'Waterfall Plot of dI/dV Spectra\n(Spectra {color_start} to {color_end} Highlighted)', fontsize=16)
+plt.grid(True, linestyle='', alpha=0.5)
+plt.show()
